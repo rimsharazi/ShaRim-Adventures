@@ -383,11 +383,14 @@
         });
 
         function renderCollection(type, docs) {
+        const todayStr = new Date().toISOString().split('T');
             if (type === 'countdowns') {
                 countdownsDataArray = docs.map(d => ({ id: d.id, ...d.data() }));
                 runClockTicker();
                 return;
             }
+            if (['dates', 'travels', 'books', 'movies', 'notes'].includes(type)) {
+
 
             const todayStr = new Date().toISOString().split('T');
             if (['dates', 'travels', 'books', 'movies', 'notes'].includes(type)) {
