@@ -185,9 +185,22 @@
         <button class="nav-btn" id="btn-notes" onclick="switchTab('notes')">💌 Notes</button>
         <button class="nav-btn" id="btn-capsules" onclick="switchTab('capsules')">⏳ Time Capsules</button>
         <button class="nav-btn" id="btn-bucket" onclick="switchTab('bucket')">🪣 Bucket List</button>
+        <button class="nav-btn active" id="btn-countdowns" onclick="switchTab('countdowns')">⏳ Countdowns</button>
     </nav>
 
     <main class="main-content">
+                <!-- ⏳ COUNTDOWNS PANEL -->
+        <div id="panel-countdowns" class="tab-panel active">
+            <div class="card">
+                <h2>Add a New Countdown</h2>
+                <form onsubmit="addFirebaseItem(event, 'countdowns')">
+                    <div class="form-group"><label>Countdown Event Name</label><input type="text" id="cd-title" required placeholder="Countdown until we meet! ✈️"></div>
+                    <div class="form-group"><label>Target Date & Time</label><input type="datetime-local" id="cd-date" required></div>
+                    <button class="btn" type="submit">Activate Timer</button>
+                </form>
+            </div>
+            <div class="card"><h2>Our Shared Timers</h2><ul id="list-countdowns" class="item-list"></ul></div>
+        </div>
         <!-- 📅 SPECIAL DATES PANEL -->
         <div id="panel-dates" class="tab-panel active">
             <div class="card">
@@ -322,6 +335,11 @@
         window.addFirebaseItem = async function(e, type) {
             e.preventDefault();
             let payload = { timestamp: Date.now() };
+            if (type === 'countdowns') {
+                payload.title = document.getElementById('cd-title').value; payload.targetDate = document.getElementById('cd-date').value;
+                document.getElementById('cd-title').value = ''; document.getElementById('cd-date').value = '';
+
+
             if (type === 'dates') {
                 payload.title = document.getElementById('date-title').value; payload.meta = document.getElementById('date-value').value;
                 document.getElementById('date-title').value = ''; document.getElementById('date-value').value = '';
@@ -353,12 +371,18 @@
         window.deleteFirebaseItem = async function(type, id) { if(confirm("Permanently delete this?")) { await deleteDoc(doc(db, type, id)); } }
         window.toggleBucketCheckbox = async function(id, currentStatus) { await updateDoc(doc(db, "bucket", id), { checked: !currentStatus }); }
 
-        const collections = ['dates', 'travels', 'books', 'movies', 'notes', 'bucket', 'tastes', 'capsules'];
+        const collections = ['dates', 'travels', 'books', 'movies', 'notes', 'bucket', 'tastes', 'capsules', 'countdowns'];
         collections.forEach(colName => {
             onSnapshot(query(collection(db, colName), orderBy("timestamp", "desc")), (snapshot) => { renderCollection(colName, snapshot.docs); });
         });
 
         function renderCollection(type, docs) {
+            if (type === 'countdowns') {
+                countdownsDataArray = docs.map(d => ({ id: d.id, ...d.data() }));
+                runClockTicker();
+                return;
+            }
+
             const todayStr = new Date().toISOString().split('T');
             if (['dates', 'travels', 'books', 'movies', 'notes'].includes(type)) {
                 const listEl = document.getElementById(`list-${type}`); listEl.innerHTML = '';
@@ -374,6 +398,22 @@
                 docs.forEach(d => { const item = d.data(); const isLocked = todayStr < item.unlockDate; if (isLocked) { listEl.innerHTML += `<li class="card"><div class="locked-capsule">🔒 <strong>${item.label}</strong><br><small>Locked until: ${item.unlockDate}</small></div></li>`; } else { listEl.innerHTML += `<li class="card" style="border-color:#22c55e;"><div style="display:flex; justify-content:space-between;"><strong>🔓 opened: ${item.label}</strong><button class="delete-btn" onclick="deleteFirebaseItem('capsules', '${d.id}')">🗑️</button></div><p style="font-style:italic; background:rgba(0,0,0,0.2); padding:10px; border-radius:6px;">${item.body}</p></li>`; } });
             }
         }
+                let countdownsDataArray = [];
+
+        function runClockTicker() {
+            const listEl = document.getElementById('list-countdowns'); if (!listEl) return;
+            listEl.innerHTML = ''; const now = new Date().getTime();
+            countdownsDataArray.forEach(item => {
+                const target = new Date(item.targetDate).getTime(); const diff = target - now; let layoutString = '';
+                if (isNaN(target) || diff <= 0) { layoutString = `<div style="color: #22c55e; font-weight: bold; margin-top: 5px;">🎉 The Adventure has Arrived!</div>`; } else {
+                    const d = Math.floor(diff / (1000 * 60 * 60 * 24)); const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)); const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)); const s = Math.floor((diff % (1000 * 60)) / 1000);
+                    layoutString = `<div class="cd-grid"><div class="cd-block"><span class="cd-num">${d}</span><span class="cd-lbl">Days</span></div><div class="cd-block"><span class="cd-num">${h.toString().padStart(2,'0')}</span><span class="cd-lbl">Hrs</span></div><div class="cd-block"><span class="cd-num">${m.toString().padStart(2,'0')}</span><span class="cd-lbl">Min</span></div><div class="cd-block"><span class="cd-num">${s.toString().padStart(2,'0')}</span><span class="cd-lbl">Sec</span></div></div>`;
+                }
+                listEl.innerHTML += `<li class="card" style="background: rgba(15,23,42,0.2); margin-bottom:12px; padding:15px;"><div style="display:flex; justify-content:space-between; align-items:center;"><strong>${item.title}</strong><button class="delete-btn" onclick="deleteFirebaseItem('countdowns', '${item.id}')">🗑️</button></div><div class="item-meta" style="margin-bottom: 5px;">Target: ${new Date(item.targetDate).toLocaleString()}</div>${layoutString}</li>`;
+            });
+        }
+        setInterval(runClockTicker, 1000);
+
     </script>
 </body>
 </html>
