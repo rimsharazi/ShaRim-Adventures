@@ -404,7 +404,7 @@
                 docs.forEach(d => { const item = d.data(); const isLocked = todayStr < item.unlockDate; if (isLocked) { listEl.innerHTML += `<li class="card"><div class="locked-capsule">🔒 <strong>${item.label}</strong><br><small>Locked until: ${item.unlockDate}</small></div></li>`; } else { listEl.innerHTML += `<li class="card" style="border-color:#22c55e;"><div style="display:flex; justify-content:space-between;"><strong>🔓 opened: ${item.label}</strong><button class="delete-btn" onclick="deleteFirebaseItem('capsules', '${d.id}')">🗑️</button></div><p style="font-style:italic; background:rgba(0,0,0,0.2); padding:10px; border-radius:6px;">${item.body}</p></li>`; } });
             }
         }
-                let countdownsDataArray = [];
+        let countdownsDataArray = [];
 
         function runClockTicker() {
             const listEl = document.getElementById('list-countdowns'); if (!listEl) return;
